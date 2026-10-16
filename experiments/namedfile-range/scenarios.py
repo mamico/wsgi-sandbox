@@ -37,6 +37,7 @@ def scenarios(size):
     return [
         Scenario("full", None, 0, size, 200, description="GET without Range"),
         Scenario("first-1k", "bytes=0-1023", 0, 1024, 206),
+        Scenario("from-start", "bytes=0-", 0, size, 206, description="bytes=0-, the whole file as a range"),
         Scenario("middle-1m", f"bytes={mid}-{mid + MIB - 1}", mid, mid + MIB, 206),
         Scenario("open-ended", f"bytes={size - 1024}-", size - 1024, size, 206),
         Scenario("suffix", "bytes=-1024", size - 1024, size, 206),

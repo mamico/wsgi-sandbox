@@ -1,0 +1,13 @@
+--- a/plone/namedfile/utils/__init__.py	2026-10-15 23:30:23.294963807 +0200
++++ b/plone/namedfile/utils/__init__.py	2026-10-15 23:30:23.968735613 +0200
+@@ -90,6 +90,10 @@
+     # BBB: is it necessary to implement __len__ ?
+     # def __len__(self)
+ 
++    def fileno(self):
++        # lets servers use sendfile with wsgi.file_wrapper, like FileIO does
++        return self._io.fileno()
++
+     def read(self, size=-1):
+         # WSGI servers read wsgi.file_wrapper objects instead of iterating them,
+         # so stop at the end of the range here as well.

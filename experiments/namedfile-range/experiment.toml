@@ -15,3 +15,15 @@ description = "plone.namedfile origin/main (2010c04)"
 description = "plone.namedfile PR #226 (6fd9c5d)"
 [variants.pr.overrides]
 "plone.namedfile" = "git+file:///home/mauro/Work/plone/plone.namedfile@6fd9c5d"
+
+[variants.pr-fileno]
+description = "PR #226 plus fileno() on the iterator, so servers can use sendfile"
+patches = ["patches/fileno.patch"]
+[variants.pr-fileno.overrides]
+"plone.namedfile" = "git+file:///home/mauro/Work/plone/plone.namedfile@6fd9c5d"
+
+[variants.pr-fileno-whole]
+description = "PR #226 plus fileno() only when the whole file is requested"
+patches = ["patches/fileno-whole-file.patch"]
+[variants.pr-fileno-whole.overrides]
+"plone.namedfile" = "git+file:///home/mauro/Work/plone/plone.namedfile@6fd9c5d"

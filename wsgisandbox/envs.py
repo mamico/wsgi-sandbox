@@ -58,6 +58,14 @@ def make_venv(experiment, cfg, variant):
     # Constraints pin the released packages; install the variants on top of that.
     for package, spec in cfg["variants"][variant].get("overrides", {}).items():
         run("uv", "pip", "install", "--python", py, "--no-deps", "--reinstall", f"{package} @ {spec}")
+    # Patches apply to the installed packages, for variants that have no commit.
+    for patch in cfg["variants"][variant].get("patches", []):
+        site_packages = subprocess.run(
+            [py, "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()  # fmt: skip
+        patch_file = ROOT / "experiments" / experiment / patch
+        run("patch", "-p1", "-d", site_packages, "-i", patch_file)
 
 
 def make_instance(experiment, variant):

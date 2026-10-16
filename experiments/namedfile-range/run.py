@@ -89,6 +89,13 @@ def main():
                     results.append(r)
                     print("  ", {k: v for k, v in r.items() if k not in ("variant", "server", "scenario")}, flush=True)
 
+    saved_path = results_dir / "results.json"
+    if not args.render_only and saved_path.exists():
+        # keep earlier runs of variants and servers this run did not cover
+        saved = json.loads(saved_path.read_text())
+        ran = {(r["variant"], r["server"]) for r in results}
+        results = [r for r in saved["results"] if (r["variant"], r["server"]) not in ran] + results
+        meta = {**saved["meta"], **meta}
     if not args.render_only:
         (results_dir / "results.json").write_text(json.dumps({"meta": meta, "size": args.size, "results": results}, indent=2))
     out = ["# Results", "", f"File size: {args.size} bytes", "", "```json", json.dumps(meta, indent=2), "```", ""]
