@@ -1,7 +1,11 @@
 # Range requests on `@@download` with waitress, bjoern and pyruvate
 
-Compares plone.namedfile `main` (`2010c04`) with PR #226 (`6fd9c5d`, "Stop
+Compares plone.namedfile `main` ([`2010c04`][main-commit]) with [PR #226][pr] ([`6fd9c5d`][pr-commit], "Stop
 `filestream_range_iterator.read` at the end of the range") on a real Plone site.
+
+[main-commit]: https://github.com/plone/plone.namedfile/commit/2010c047e53ce3f74a96e21692e4ea4d7a169ede
+[pr]: https://github.com/plone/plone.namedfile/pull/226
+[pr-commit]: https://github.com/plone/plone.namedfile/pull/226/commits/6fd9c5d3fb4b3bf089ed4e4e2458f52cb6b4b5d2
 
 ## Summary
 
@@ -11,7 +15,7 @@ Compares plone.namedfile `main` (`2010c04`) with PR #226 (`6fd9c5d`, "Stop
 
 ## Setup
 
-Variants: `main` (`2010c04`), `pr` (`6fd9c5d`), and two patched variants in the last section, `pr-fileno` and `pr-fileno-whole`. The sections up to the last one compare `main` and `pr` only. `pr-fileno-whole` was run on bjoern and pyruvate only, waitress ignores `fileno()`.
+Variants: `main` ([`2010c04`][main-commit]), `pr` ([`6fd9c5d`][pr-commit]), and two patched variants in the last section, `pr-fileno` and `pr-fileno-whole`. The sections up to the last one compare `main` and `pr` only. `pr-fileno-whole` was run on bjoern and pyruvate only, waitress ignores `fileno()`.
 
 - Plone 6.2.2, Zope 6.2, Python 3.12.9, plone.namedfile 8.1.2.dev0 (both variants, only the PR commit differs).
 - waitress 3.0.2 (4 threads), bjoern 3.2.2, pyruvate 1.6.1 (2 workers, `max_reuse_count=100`).
