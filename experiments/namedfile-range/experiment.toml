@@ -3,8 +3,12 @@ description = "Range requests on plone.namedfile @@download, with and without PR
 python = "3.12"
 constraints = "https://dist.plone.org/release/6.2-latest/constraints.txt"
 requirements = ["requirements/plone.txt", "requirements/servers.txt"]
-servers = ["waitress", "bjoern", "pyruvate"]
+servers = ["waitress", "bjoern", "pyruvate", "gunicorn", "uwsgi", "cheroot"]
 file_size = 67108864  # 64 MiB
+
+# Installed in every variant, on top of the constraints.
+[overrides]
+gunicorn = "==26.2.0"  # the constraints pin 26.2.2, which is not on PyPI
 
 [variants.main]
 description = "plone.namedfile origin/main (2010c04)"
