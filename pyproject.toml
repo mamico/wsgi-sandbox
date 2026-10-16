@@ -1,0 +1,9 @@
+[project]
+name = "wsgi-sandbox"
+version = "0.0.0"
+description = "Compare WSGI servers in front of Plone/Zope"
+requires-python = ">=3.11"
+dependencies = ["psutil"]
+
+[tool.uv]
+package = false

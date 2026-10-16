@@ -1,0 +1,2 @@
+Products.CMFPlone
+plone.app.contenttypes

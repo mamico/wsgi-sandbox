@@ -1,0 +1,17 @@
+name = "namedfile-range"
+description = "Range requests on plone.namedfile @@download, with and without PR #226"
+python = "3.12"
+constraints = "https://dist.plone.org/release/6.2-latest/constraints.txt"
+requirements = ["requirements/plone.txt", "requirements/servers.txt"]
+servers = ["waitress", "bjoern", "pyruvate"]
+file_size = 67108864  # 64 MiB
+
+[variants.main]
+description = "plone.namedfile origin/main (2010c04)"
+[variants.main.overrides]
+"plone.namedfile" = "git+file:///home/mauro/Work/plone/plone.namedfile@2010c047e53ce3f74a96e21692e4ea4d7a169ede"
+
+[variants.pr]
+description = "plone.namedfile PR #226 (6fd9c5d)"
+[variants.pr.overrides]
+"plone.namedfile" = "git+file:///home/mauro/Work/plone/plone.namedfile@6fd9c5d"

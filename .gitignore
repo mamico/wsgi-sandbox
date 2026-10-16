@@ -1,0 +1,4 @@
+variants/
+experiments/*/results/
+__pycache__/
+.venv/
