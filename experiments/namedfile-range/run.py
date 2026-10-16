@@ -18,7 +18,7 @@ from wsgisandbox.envs import load_experiment, venv_python  # noqa: E402
 from wsgisandbox.runner import ServerProcess  # noqa: E402
 
 EXPERIMENT = HERE.name
-PACKAGES = ["plone.namedfile", "Zope", "Products.CMFPlone", "waitress", "bjoern", "pyruvate"]
+PACKAGES = ["plone.namedfile", "Zope", "Products.CMFPlone", "waitress", "bjoern", "pyruvate", "gunicorn", "uWSGI", "cheroot"]
 
 
 def versions(variant):
@@ -91,10 +91,10 @@ def main():
 
     saved_path = results_dir / "results.json"
     if not args.render_only and saved_path.exists():
-        # keep earlier runs of variants and servers this run did not cover
+        # keep earlier results of scenarios, variants and servers this run did not cover
         saved = json.loads(saved_path.read_text())
-        ran = {(r["variant"], r["server"]) for r in results}
-        results = [r for r in saved["results"] if (r["variant"], r["server"]) not in ran] + results
+        ran = {(r["variant"], r["server"], r["scenario"]) for r in results}
+        results = [r for r in saved["results"] if (r["variant"], r["server"], r["scenario"]) not in ran] + results
         meta = {**saved["meta"], **meta}
     if not args.render_only:
         (results_dir / "results.json").write_text(json.dumps({"meta": meta, "size": args.size, "results": results}, indent=2))

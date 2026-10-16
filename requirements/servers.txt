@@ -1,3 +1,6 @@
 waitress
 bjoern
 pyruvate
+uwsgi
+cheroot
+# gunicorn: Plone's constraints pin a version that is not on PyPI, see overrides in experiment.toml

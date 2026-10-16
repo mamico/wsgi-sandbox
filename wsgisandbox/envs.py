@@ -55,9 +55,12 @@ def make_venv(experiment, cfg, variant):
     for req in cfg["requirements"]:
         requirements += ["-r", ROOT / req]
     run("uv", "pip", "install", "--python", py, *requirements, "-c", cfg["constraints"])
-    # Constraints pin the released packages; install the variants on top of that.
-    for package, spec in cfg["variants"][variant].get("overrides", {}).items():
-        run("uv", "pip", "install", "--python", py, "--no-deps", "--reinstall", f"{package} @ {spec}")
+    # Constraints pin the released packages; install the overrides on top of that.
+    overrides = {**cfg.get("overrides", {}), **cfg["variants"][variant].get("overrides", {})}
+    for package, spec in overrides.items():
+        # a spec is a URL or a version specifier such as "==1.0"
+        requirement = f"{package}{spec}" if spec[0] in "=<>!~" else f"{package} @ {spec}"
+        run("uv", "pip", "install", "--python", py, "--no-deps", "--reinstall", requirement)
     # Patches apply to the installed packages, for variants that have no commit.
     for patch in cfg["variants"][variant].get("patches", []):
         site_packages = subprocess.run(
