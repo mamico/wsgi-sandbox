@@ -53,7 +53,7 @@ def uwsgi(zope_conf, host, port):
     binary = os.path.join(sys.prefix, "bin", "uwsgi")
     here = os.path.dirname(os.path.abspath(__file__))
     args = [
-        "--http11-socket", f"{host}:{port}",  # http-socket is HTTP/1.0 only, no keep-alive
+        "--http11-socket", f"{host}:{port}",  # keeps connections alive, like the other servers
         "--wsgi-file", os.path.join(here, "uwsgi_app.py"),
         "--home", sys.prefix,
         "--env", f"SANDBOX_ZOPE_CONF={zope_conf}",
