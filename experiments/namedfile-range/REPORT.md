@@ -7,6 +7,7 @@ pyruvate, gunicorn, uWSGI and cheroot.
 [main-commit]: https://github.com/plone/plone.namedfile/commit/2010c047e53ce3f74a96e21692e4ea4d7a169ede
 [pr]: https://github.com/plone/plone.namedfile/pull/226
 [pr-commit]: https://github.com/plone/plone.namedfile/pull/226/commits/6fd9c5d3fb4b3bf089ed4e4e2458f52cb6b4b5d2
+[pr233]: https://github.com/plone/plone.namedfile/pull/233
 
 ## Summary
 
@@ -14,12 +15,13 @@ pyruvate, gunicorn, uWSGI and cheroot.
 - Before the PR, bjoern and uWSGI sent the rest of the file after `Content-Length` and broke the next request on a keep-alive connection. waitress, pyruvate and gunicorn cut at `Content-Length`, so the client was fine, but they read the rest of the file (pyruvate into memory). cheroot was already correct: it does not use `wsgi.file_wrapper`.
 - Open ranges (`bytes=N-`, `bytes=-N`) were already correct everywhere.
 - Not covered by the PR: a full download (no Range, or `bytes=0-`) on bjoern and pyruvate reads the whole file in one `read()` (+127 MiB RSS for 64 MiB).
-- A `fileno()` that is only available for whole-file responses lets bjoern, pyruvate, gunicorn and uWSGI use `sendfile` and is correct on all six servers. A `fileno()` that is always available breaks ranges on bjoern, pyruvate and uWSGI (see the last section).
+- A `fileno()` that is only available for whole-file responses lets bjoern, pyruvate, gunicorn and uWSGI use `sendfile` and is correct on all six servers. A `fileno()` that is always available breaks ranges on bjoern, pyruvate and uWSGI (see the follow-up sections).
+- Large partial ranges (e.g. `bytes=1-`) still cost about twice their size on bjoern and pyruvate. Returning partial ranges as a plain iterator, without `read`, keeps them out of `wsgi.file_wrapper` and fixes that on all six servers ([plone.namedfile#233][pr233], last section).
 - uWSGI 2.0.31 has a bug of its own: the block size of `wsgi.file_wrapper` is an uninitialized variable when the app does not pass one, and Zope does not.
 
 ## Setup
 
-Variants: `main` ([`2010c04`][main-commit]), `pr` ([`6fd9c5d`][pr-commit]), and two patched variants in the last section, `pr-fileno` and `pr-fileno-whole`. The sections up to the last one compare `main` and `pr` only. `pr-fileno-whole` was run on all servers except waitress, which ignores `fileno()`.
+Variants: `main` ([`2010c04`][main-commit]), `pr` ([`6fd9c5d`][pr-commit]), and three patched variants in the follow-up sections, `pr-fileno`, `pr-fileno-whole` and `pr-fileno-whole-iter`. The sections before them compare `main` and `pr` only. `pr-fileno-whole` was run on all servers except waitress, which ignores `fileno()`, apart from the ranges close to the whole file.
 
 - Plone 6.2.2, Zope 6.2, Python 3.12.9, plone.namedfile 8.1.2.dev0 (all variants, only the PR commit and the patches differ).
 - waitress 3.0.2 (4 threads), bjoern 3.2.2, pyruvate 1.6.1 (2 workers, `max_reuse_count=100`), gunicorn 26.2.0 (one `gthread` worker, 4 threads), uWSGI 2.0.31 (`--http11-socket`, one process, 4 threads), cheroot 11.1.2 (4 threads).
@@ -114,3 +116,27 @@ Range requests with `pr-fileno` (always `fileno()`):
 With `pr-fileno-whole` all 7 scenarios are correct on bjoern, pyruvate, gunicorn, uWSGI and cheroot: whole-file downloads (no Range and `bytes=0-`) use `sendfile` where the server supports it, with no memory cost, and ranges use the iterator like the PR (no extra bytes, memory follows the range size).
 
 Caveats: tested only on these server versions and with a committed blob on local disk. `fileno()` makes the file descriptor visible to anything that checks for it, not only WSGI servers. Whether this belongs in plone.namedfile is a separate decision from PR #226.
+
+## Follow-up: partial ranges as a plain iterator
+
+`pr-fileno-whole` helps whole-file downloads only. A partial range still goes to `wsgi.file_wrapper`, and bjoern and pyruvate read it in one `read()`, so a large range costs about twice its size. Four more scenarios test ranges close to the whole file: `bytes=0-{size-1}` and `bytes=0-{size+1000}` are the whole file for Zope (`end` becomes the size), `bytes=1-{size-1}` and `bytes=0-{size-2}` are not.
+
+`pr-fileno-whole-iter` adds `patches/partial-range-iterate.patch` on top of `fileno-whole-file.patch`. `stream_data` returns a partial range as `partial_range_iterator`, which has no `read` and no `fileno`. Zope returns it to the server as a plain iterable instead of handing it to `wsgi.file_wrapper`, and every server iterates it in 64 KiB blocks. Werkzeug does the same for 206 responses. This is the change in [plone.namedfile#233][pr233].
+
+Peak RSS above the idle server, 64 MiB file:
+
+| server | request | `pr` (#226, now `main`) | `pr-fileno-whole` | `pr-fileno-whole-iter` |
+|---|---|---|---|---|
+| bjoern | `bytes=1-{size-1}` | +126.6 MiB | +127.3 MiB | +116 KiB |
+| bjoern | `bytes=0-{size-2}` | +126.8 MiB | +127.1 MiB | 0 |
+| bjoern | 1 MiB in the middle | +1.6 MiB | 0 | +116 KiB |
+| pyruvate | `bytes=1-{size-1}` | +126.5 MiB | +126.5 MiB | +108 KiB |
+| pyruvate | `bytes=0-{size-2}` | +126.6 MiB | +126.6 MiB | +124 KiB |
+| pyruvate | 1 MiB in the middle | +1.0 MiB | +1.3 MiB | +116 KiB |
+
+- With `pr-fileno-whole-iter` all 11 scenarios are correct on all six servers: right bytes, nothing after `Content-Length`, the next request on the connection works (pyruvate: `closed`, as always).
+- Whole file (no Range, `bytes=0-`, `bytes=0-{size-1}`, `bytes=0-{size+1000}`): same as `pr-fileno-whole`, `sendfile` on bjoern, pyruvate, gunicorn and uWSGI.
+- waitress, gunicorn, uWSGI and cheroot: no memory difference beyond noise.
+- With `pr-fileno` (always `fileno()`) the ranges close to the whole file break as well: pyruvate returns wrong bytes for `bytes=1-{size-1}`, bjoern sends 1 byte after `Content-Length` for `bytes=0-{size-2}`, uWSGI sends 1 extra byte for both and wrong bytes for `bytes=1-{size-1}`.
+
+Caveat: code that calls `.read()` on the result of `stream_data`, or checks for `filestream_range_iterator`, gets a different class for partial ranges. In the Plone 6.2 packages the callers only return it to the publisher.

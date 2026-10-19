@@ -50,6 +50,11 @@ def scenarios(size):
             second_range=("bytes=100-109", 100, 110),
             description="two range requests on one connection",
         ),
+        # ranges close to the whole file: only the first two are the whole file for Zope
+        Scenario("from-0-to-size-1", f"bytes=0-{size - 1}", 0, size, 206),
+        Scenario("from-0-past-end", f"bytes=0-{size + 1000}", 0, size, 206),
+        Scenario("from-1-to-end", f"bytes=1-{size - 1}", 1, size, 206),
+        Scenario("from-0-to-size-2", f"bytes=0-{size - 2}", 0, size - 1, 206),
     ]
 
 
